@@ -10,10 +10,14 @@ RUN apt-get update \
         libzip-dev \
         zip \
         unzip
-
+RUN curl -sSLf \
+        -o /usr/local/bin/install-php-extensions \
+        https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
+    chmod +x /usr/local/bin/install-php-extensions
 ## 安装扩展
-RUN docker-php-ext-install zip gd pdo_mysql
-RUN docker-php-ext-install curl mongodb pgsql
+RUN install-php-extensions zip gd
+RUN install-php-extensions pdo_mysql pdo_pgsql pdo_sqlsrv
+RUN install-php-extensions curl mongodb memcache memcached
 RUN chmod +x /opt/mumov
 RUN mv /opt/htdocs/upload /opt/data
 RUN ln -s /data/upload /opt/htdocs/upload
