@@ -29,6 +29,8 @@ class Card extends Base {
 
     public function listData($where,$order,$page,$limit=20)
     {
+        $page = $page > 0 ? (int)$page : 1;
+        $limit = $limit ? (int)$limit : 20;
         $total = $this->where($where)->count();
         $list = Db::name('Card')->where($where)->order($order)->page($page)->limit($limit)->select();
         foreach($list as $k=>$v){
@@ -143,6 +145,12 @@ class Card extends Base {
         if($res===false){
             return ['code' => 1003, 'msg' =>lang('model/card/update_user_points_err')];
         }
+        //积分日志
+        $data = [];
+        $data['user_id'] = $user_info['user_id'];
+        $data['plog_type'] = 1;
+        $data['plog_points'] = $info['card_points'];
+        $result = model('Plog')->saveData($data);
 
         $update=[];
         $update['card_sale_status'] = 1;
@@ -150,7 +158,7 @@ class Card extends Base {
         $update['card_use_time'] = time();
         $update['user_id'] = $user_info['user_id'];
         $res = $this->where($where)->update($update);
-        if($res===false){
+        if($res === false){
             return ['code' => 1004, 'msg' =>lang('model/card/update_card_status_err')];
         }
 

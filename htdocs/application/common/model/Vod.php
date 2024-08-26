@@ -31,6 +31,9 @@ class Vod extends Base {
 
     public function listData($where,$order,$page=1,$limit=20,$start=0,$field='*',$addition=1,$totalshow=1)
     {
+        $page = $page > 0 ? (int)$page : 1;
+        $limit = $limit ? (int)$limit : 20;
+        $start = $start ? (int)$start : 0;
         if(!is_array($where)){
             $where = json_decode($where,true);
         }
@@ -68,6 +71,9 @@ class Vod extends Base {
 
     public function listRepeatData($where,$order,$page=1,$limit=20,$start=0,$field='*',$addition=1)
     {
+        $page = $page > 0 ? (int)$page : 1;
+        $limit = $limit ? (int)$limit : 20;
+        $start = $start ? (int)$start : 0;
         if(!is_array($where)){
             $where = json_decode($where,true);
         }
@@ -241,6 +247,9 @@ class Vod extends Base {
             if(!empty($param['page'])){
                 $page = intval($param['page']);
             }
+            if(isset($param['isend'])){
+                $isend = intval($param['isend']);
+            }
 
             foreach($param as $k=>$v){
                 if(empty($v)){
@@ -266,7 +275,6 @@ class Vod extends Base {
                 $pageurl = mac_url($pageurl,$param);
             }
         }
-
         $where['vod_status'] = ['eq',1];
         if(!empty($ids)) {
             if($ids!='all'){
@@ -495,14 +503,54 @@ class Vod extends Base {
                 }
             }
         }
+        // 优化随机视频排序rnd的性能问题
+        // https://github.com/magicblack/maccms10/issues/967
+        $use_rand = false;
         if($by=='rnd'){
+            $use_rand = true;
+            $algo2_threshold = 2000;
             $data_count = $this->countData($where);
-            $page_total = floor($data_count / $lp['num']) + 1;
-            if($data_count < $lp['num']){
-                $lp['num'] = $data_count;
+            $where_string_addon = "";
+            if ($data_count > $algo2_threshold) {
+                $rows = $this->field("vod_id")->where($where)->select();
+                foreach ($rows as $row) {
+                    $id_list[] = $row['vod_id'];
+                }
+                if (
+                    !empty($id_list)
+                ) {
+                    $random_count = intval($algo2_threshold / 2);
+                    $specified_list = array_rand($id_list, intval($algo2_threshold / 2));
+                    $random_keys = array_rand($id_list, $random_count);
+                    $specified_list = [];
+
+                    if ($random_count == 1) {
+                        $specified_list[] = $id_list[$random_keys];
+                    } else {
+                        foreach ($random_keys as $key) {
+                            $specified_list[] = $id_list[$key];
+                        }
+                    }
+                    if (!empty($specified_list)) {
+                        $where_string_addon = " AND vod_id IN (" . join(',', $specified_list) . ")";
+                    }
+                }
             }
-            $randi = @mt_rand(1, $page_total);
-            $page = $randi;
+            if (!empty($where_string_addon)) {
+                $where['_string'] .= $where_string_addon;
+                $where['_string'] = trim($where['_string'], " AND ");
+            } else {
+                if ($data_count % $lp['num'] === 0) {
+                    $page_total = floor($data_count / $lp['num']);
+                } else {
+                    $page_total = floor($data_count / $lp['num']) + 1;
+                }
+                if($data_count < $lp['num']){
+                    $lp['num'] = $data_count;
+                }
+                $randi = @mt_rand(1, $page_total);
+                $page = $randi;
+            }
             $by = 'hits_week';
             $order = 'desc';
         }
@@ -515,7 +563,7 @@ class Vod extends Base {
         }
         $order= 'vod_'.$by .' ' . $order;
         $where_cache = $where;
-        if(!empty($randi)){
+        if($use_rand){
             unset($where_cache['vod_id']);
             $where_cache['order'] = 'rnd';
         }

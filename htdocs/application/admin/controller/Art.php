@@ -41,6 +41,7 @@ class Art extends Base
             }
         }
         if(!empty($param['wd'])){
+            $param['wd'] = urldecode($param['wd']);
             $param['wd'] = mac_filter_xss($param['wd']);
             $where['art_name'] = ['like','%'.$param['wd'].'%'];
         }
@@ -255,7 +256,9 @@ class Art extends Base
         $val = $param['val'];
         $start = $param['start'];
         $end = $param['end'];
-
+        if ($col == 'type_id' && $val==''){
+            return $this->error("请选择分类提交");
+        }
 
         if(!empty($ids) && in_array($col,['art_status','art_lock','art_level','art_hits','type_id'])){
             $where=[];

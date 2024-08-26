@@ -31,6 +31,9 @@ class Role extends Base {
 
     public function listData($where,$order,$page=1,$limit=20,$start=0,$field='*',$addition=1,$totalshow=1)
     {
+        $page = $page > 0 ? (int)$page : 1;
+        $limit = $limit ? (int)$limit : 20;
+        $start = $start ? (int)$start : 0;
         if(!is_array($where)){
             $where = json_decode($where,true);
         }
@@ -243,8 +246,8 @@ class Role extends Base {
             $by = 'hits_week';
             $order = 'desc';
         }
-
-        if(!in_array($by, ['id', 'time','time_add','score','hits','hits_day','hits_week','hits_month','up','down','level','rnd'])) {
+        // https://github.com/magicblack/maccms10/issues/1050
+        if(!in_array($by, ['id', 'time','time_add','score','hits','hits_day','hits_week','hits_month','up','down','level','rnd','sort'])) {
             $by = 'time';
         }
         if(!in_array($order, ['asc', 'desc'])) {

@@ -14,7 +14,7 @@ class Vod extends Base
         $param = input();
         $param['page'] = intval($param['page']) <1 ? 1 : $param['page'];
         $param['limit'] = intval($param['limit']) <1 ? $this->_pagesize : $param['limit'];
-        
+
         $where = [];
         if(!empty($param['type'])){
             $where['type_id|type_id_1'] = ['eq',$param['type']];
@@ -70,6 +70,7 @@ class Vod extends Base
             $where['vod_weekday'] = ['like','%'.$param['weekday'].'%'];
         }
         if(!empty($param['wd'])){
+            $param['wd'] = urldecode($param['wd']);
             $param['wd'] = mac_filter_xss($param['wd']);
             $where['vod_name|vod_actor|vod_sub'] = ['like','%'.$param['wd'].'%'];
         }
@@ -474,6 +475,9 @@ class Vod extends Base
         $start = $param['start'];
         $end = $param['end'];
 
+        if ($col == 'type_id' && $val==''){
+            return $this->error("请选择分类提交");
+        }
 
         if(!empty($ids) && in_array($col,['vod_status','vod_lock','vod_level','vod_hits','type_id','vod_copyright'])){
             $where=[];

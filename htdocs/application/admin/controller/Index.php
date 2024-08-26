@@ -90,6 +90,7 @@ class Index extends Base
             }
         }
         $this->assign('menus',$menus);
+        $this->assign('config',config('maccms'));
 
         $this->assign('title',lang('admin/index/title'));
         return $this->fetch('admin@index/index');
@@ -158,6 +159,8 @@ class Index extends Base
         if(!$res) {
             $this->error(lang('admin/index/clear_err'));
         }
+        // 搜索缓存结果清理
+        model('VodSearch')->clearOldResult(true);
         return $this->success(lang('admin/index/clear_ok'));
     }
 

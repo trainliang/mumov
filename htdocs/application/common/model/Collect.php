@@ -22,6 +22,9 @@ class Collect extends Base {
 
     public function listData($where,$order,$page=1,$limit=20,$start=0)
     {
+        $page = $page > 0 ? (int)$page : 1;
+        $limit = $limit ? (int)$limit : 20;
+        $start = $start ? (int)$start : 0;
         $total = $this->where($where)->count();
         $list = Db::name('Collect')->where($where)->order($order)->page($page)->limit($limit)->select();
         return ['code'=>1,'msg'=>lang('data_list'),'page'=>$page,'pagecount'=>ceil($total/$limit),'limit'=>$limit,'total'=>$total,'list'=>$list];
@@ -390,25 +393,26 @@ class Collect extends Base {
      * @param string $flag
      * @return array
      */
-    private function syncImages($pic_status,$pic_url,$flag='vod')
+    private function syncImages($pic_status, $pic_url, $flag = 'vod')
     {
-        $config = (array)config('maccms.upload');
-        if($pic_status == 1){
-            $img_url = model('Image')->down_load($pic_url, $config, $flag);
-            if(substr($img_url,0,7)=='upload/'){
-                $link = MAC_PATH . $img_url;
-            }
-            else{
-                $link = str_replace('mac:', $config['protocol'].':', $img_url);
-            }
-            if ($img_url == $pic_url) {
+        $img_url_downloaded = $pic_url;
+        if ($pic_status == 1) {
+            $config = (array)config('maccms.upload');
+            $img_url_downloaded = model('Image')->down_load($pic_url, $config, $flag);
+            if ($img_url_downloaded == $pic_url) {
+                // 下载失败，显示老图信息
                 $des = '<a href="' . $pic_url . '" target="_blank">' . $pic_url . '</a><font color=red>'.lang('download_err').'!</font>';
             } else {
-                $pic_url = $img_url;
+                // 下载成功，显示新图信息
+                if (str_starts_with($img_url_downloaded, 'upload/')) {
+                    $link = MAC_PATH . $img_url_downloaded;
+                } else {
+                    $link = str_replace('mac:', $config['protocol'] . ':', $img_url_downloaded);
+                }
                 $des = '<a href="' . $link . '" target="_blank">' . $link . '</a><font color=green>'.lang('download_ok').'!</font>';
             }
         }
-        return ['pic'=>$pic_url,'msg'=>$des];
+        return ['pic' => $img_url_downloaded, 'msg' => $des];
     }
 
     public function vod_data($param,$data,$show=1)
@@ -420,6 +424,8 @@ class Collect extends Base {
         $config = config('maccms.collect');
         $config = $config['vod'];
         $config_sync_pic = $param['sync_pic_opt'] > 0 ? $param['sync_pic_opt'] : $config['pic'];
+        $filter_year = !empty($param['filter_year']) ? $param['filter_year'] : '';
+        $filter_year_list = $filter_year ? get_array_unique_id_list(explode(',', $filter_year)) : [];
         $players = config('vodplayer');
         $downers = config('voddowner');
         $vod_search = model('VodSearch');
@@ -434,6 +440,8 @@ class Collect extends Base {
         $pse_name = mac_txt_explain($config['namewords'], true);
         $pse_syn = mac_txt_explain($config['thesaurus'], true);
         $pse_player = mac_txt_explain($config['playerwords'], true);
+        $pse_area = mac_txt_explain($config['areawords'], true);
+        $pse_lang = mac_txt_explain($config['langwords'], true);
 
         foreach($data['data'] as $k=>$v){
             $color='red';
@@ -441,16 +449,18 @@ class Collect extends Base {
             $msg='';
             $tmp='';
 
-            if($v['type_id'] ==0){
+            if ($v['type_id'] ==0) {
                 $des = lang('model/collect/type_err');
-            }
-            elseif(empty($v['vod_name'])) {
+            } elseif (empty($v['vod_name'])) {
                 $des = lang('model/collect/name_err');
-            }
-            elseif( mac_array_filter($filter_arr,$v['vod_name']) !==false) {
+            } elseif (mac_array_filter($filter_arr,$v['vod_name']) !==false) {
                 $des = lang('model/collect/name_in_filter_err');
-            }
-            else {
+            } elseif ($filter_year_list && !in_array(intval($v['vod_year']), $filter_year_list)) {
+                // 采集时，过滤年份
+                // https://github.com/magicblack/maccms10/issues/1057
+                $color = 'orange';
+                $des = 'year [' . intval($v['vod_year']) . '] not in: ' . join(',', $filter_year_list);
+            } else {
                 unset($v['vod_id']);
 
                 foreach($v as $k2=>$v2){
@@ -467,7 +477,12 @@ class Collect extends Base {
                 if (empty($v['vod_time_add']) || strlen($v['vod_time_add']) != 10) {
                     $v['vod_time_add'] = time();
                 }
+                // 支持外部自定义修改时间
+                // https://github.com/magicblack/maccms10/issues/862
                 $v['vod_time'] = time();
+                if (!empty($v['vod_time_update']) && strlen($v['vod_time_update']) == 10) {
+                    $v['vod_time'] = (int)$v['vod_time_update'];
+                }
                 $v['vod_status'] = intval($config['status']);
                 $v['vod_lock'] = intval($v['vod_lock']);
                 if(!empty($v['vod_status'])) {
@@ -542,13 +557,22 @@ class Collect extends Base {
                 if ($config['pseplayer'] == 1) {
                     $v['vod_play_from'] = mac_rep_pse_syn($pse_player, $v['vod_play_from']);
                 }
+                if ($config['psearea'] == 1) {
+                    $v['vod_area'] = mac_rep_pse_syn($pse_area, $v['vod_area']);
+                }
+                if ($config['pselang'] == 1) {
+                    $v['vod_lang'] = mac_rep_pse_syn($pse_lang, $v['vod_lang']);
+                }
 
                 if(empty($v['vod_blurb'])){
                     $v['vod_blurb'] = mac_substring( strip_tags($v['vod_content']) ,100);
                 }
 
                 $where = [];
-                $where['vod_name'] = mac_filter_xss($v['vod_name']);
+
+                if (strpos($config['inrule'], 'a')!==false) {
+                    $where['vod_name'] = mac_filter_xss($v['vod_name']);
+                }
                 $blend=false;
                 if (strpos($config['inrule'], 'b')!==false) {
                     $where['type_id'] = $v['type_id'];
@@ -572,6 +596,9 @@ class Collect extends Base {
                 }
                 if (strpos($config['inrule'], 'g')!==false) {
                     $where['vod_director'] = mac_filter_xss($v['vod_director']);
+                }
+                if (strpos($config['inrule'], 'h')!==false) {
+                    $where['vod_douban_id'] = intval($v['vod_douban_id']);
                 }
                 if ($config['tag'] == 1) {
                     $v['vod_tag'] = mac_filter_xss(mac_get_tag($v['vod_name'], $v['vod_content']));
@@ -668,14 +695,14 @@ class Collect extends Base {
                         }
                     }
                 }
-                $v['vod_play_from'] = (string)join('$$$',$cj_play_from_arr);
-                $v['vod_play_url'] = (string)join('$$$',$cj_play_url_arr);
-                $v['vod_play_server'] = (string)join('$$$',$cj_play_server_arr);
-                $v['vod_play_note'] = (string)join('$$$',$cj_play_note_arr);
-                $v['vod_down_from'] = (string)join('$$$',$cj_down_from_arr);
-                $v['vod_down_url'] = (string)join('$$$',$cj_down_url_arr);
-                $v['vod_down_server'] = (string)join('$$$',$cj_down_server_arr);
-                $v['vod_down_note'] = (string)join('$$$',$cj_down_note_arr);
+                $v['vod_play_from'] = (string)join('$$$', (array)$cj_play_from_arr);
+                $v['vod_play_url'] = (string)join('$$$', (array)$cj_play_url_arr);
+                $v['vod_play_server'] = (string)join('$$$', (array)$cj_play_server_arr);
+                $v['vod_play_note'] = (string)join('$$$', (array)$cj_play_note_arr);
+                $v['vod_down_from'] = (string)join('$$$', (array)$cj_down_from_arr);
+                $v['vod_down_url'] = (string)join('$$$', (array)$cj_down_url_arr);
+                $v['vod_down_server'] = (string)join('$$$', (array)$cj_down_server_arr);
+                $v['vod_down_note'] = (string)join('$$$', (array)$cj_down_note_arr);
 
                 if($blend===false){
                     $info = model('Vod')->where($where)->find();
@@ -695,19 +722,18 @@ class Collect extends Base {
 
                 if (!$info) {
                     // 新增
-                    if($param['opt'] == 2){
+                    if ($param['opt'] == 2) {
                         $des= lang('model/collect/not_check_add');
-                    }
-                    else {
+                    } else {
                         if ($param['filter'] == 1 || $param['filter'] == 2) {
-                            $v['vod_play_from'] = (string)join('$$$', $collect_filter['play'][$param['filter']]['cj_play_from_arr']);
-                            $v['vod_play_url'] = (string)join('$$$', $collect_filter['play'][$param['filter']]['cj_play_url_arr']);
-                            $v['vod_play_server'] = (string)join('$$$', $collect_filter['play'][$param['filter']]['cj_play_server_arr']);
-                            $v['vod_play_note'] = (string)join('$$$', $collect_filter['play'][$param['filter']]['cj_play_note_arr']);
-                            $v['vod_down_from'] = (string)join('$$$', $collect_filter['down'][$param['filter']]['cj_down_from_arr']);
-                            $v['vod_down_url'] = (string)join('$$$', $collect_filter['down'][$param['filter']]['cj_down_url_arr']);
-                            $v['vod_down_server'] = (string)join('$$$', $collect_filter['down'][$param['filter']]['cj_down_server_arr']);
-                            $v['vod_down_note'] = (string)join('$$$', $collect_filter['down'][$param['filter']]['cj_down_note_arr']);
+                            $v['vod_play_from'] = (string)join('$$$', (array)$collect_filter['play'][$param['filter']]['cj_play_from_arr']);
+                            $v['vod_play_url'] = (string)join('$$$', (array)$collect_filter['play'][$param['filter']]['cj_play_url_arr']);
+                            $v['vod_play_server'] = (string)join('$$$', (array)$collect_filter['play'][$param['filter']]['cj_play_server_arr']);
+                            $v['vod_play_note'] = (string)join('$$$', (array)$collect_filter['play'][$param['filter']]['cj_play_note_arr']);
+                            $v['vod_down_from'] = (string)join('$$$', (array)$collect_filter['down'][$param['filter']]['cj_down_from_arr']);
+                            $v['vod_down_url'] = (string)join('$$$', (array)$collect_filter['down'][$param['filter']]['cj_down_url_arr']);
+                            $v['vod_down_server'] = (string)join('$$$', (array)$collect_filter['down'][$param['filter']]['cj_down_server_arr']);
+                            $v['vod_down_note'] = (string)join('$$$', (array)$collect_filter['down'][$param['filter']]['cj_down_note_arr']);
                         }
                         $tmp = $this->syncImages($config_sync_pic,  $v['vod_pic'], 'vod');
                         $v['vod_pic'] = (string)$tmp['pic'];
@@ -766,6 +792,7 @@ class Collect extends Base {
                                 } elseif (empty($cj_play_from)) {
                                     $des .= lang('model/collect/playfrom_empty');
                                 } elseif (strpos('$$$'.$info['vod_play_from'].'$$$', '$$$'.$cj_play_from.'$$$') === false) {
+                                    // 新类型播放组，加入
                                     $color = 'green';
                                     $des .= lang('model/collect/playgroup_add_ok',[$cj_play_from]);
                                     if(!empty($old_play_from)){
@@ -780,6 +807,7 @@ class Collect extends Base {
                                     $old_play_note .= "" . $cj_play_note;
                                     $ec=true;
                                 }  elseif (!empty($cj_play_url)) {
+                                    // 同类型播放组
                                     $arr1 = explode("$$$", $old_play_url);
                                     $arr2 = explode("$$$", $old_play_from);
                                     $play_key = array_search($cj_play_from, $arr2);
@@ -788,18 +816,19 @@ class Collect extends Base {
                                     } else {
                                         $color = 'green';
                                         $des .= lang('model/collect/playgroup_update_ok',[$cj_play_from]);
+                                        // 根据「地址二更规则」配置，替换或合并
                                         if ($config['urlrole'] == 1) {
                                             $tmp1 = explode('#',$arr1[$play_key]);
                                             $tmp2 = explode('#',$cj_play_url);
                                             $tmp1 = array_merge($tmp1,$tmp2);
                                             $tmp1 = array_unique($tmp1);
-                                            $cj_play_url = join('#',$tmp1);
+                                            $cj_play_url = join('#', (array)$tmp1);
                                             unset($tmp1,$tmp2);
                                         }
                                         $arr1[$play_key] = $cj_play_url;
                                         $ec=true;
                                     }
-                                    $old_play_url = join('$$$', $arr1);
+                                    $old_play_url = join('$$$', (array)$arr1);
                                 }
                             }
                             if($ec) {
@@ -852,10 +881,21 @@ class Collect extends Base {
                                     } else {
                                         $color = 'green';
                                         $des .= lang('model/collect/downgroup_update_ok',[$cj_down_from]);
+                                        // 根据「地址二更规则」配置，替换或合并
+                                        // “采集参数配置--地址二更规则”配置需要对下载地址生效
+                                        // https://github.com/magicblack/maccms10/issues/893
+                                        if ($config['urlrole'] == 1) {
+                                            $tmp1 = explode('#',$arr1[$down_key]);
+                                            $tmp2 = explode('#',$cj_down_url);
+                                            $tmp1 = array_merge($tmp1,$tmp2);
+                                            $tmp1 = array_unique($tmp1);
+                                            $cj_down_url = join('#', (array)$tmp1);
+                                            unset($tmp1,$tmp2);
+                                        }
                                         $arr1[$down_key] = $cj_down_url;
                                         $ec=true;
                                     }
-                                    $old_down_url = join('$$$', $arr1);
+                                    $old_down_url = join('$$$', (array)$arr1);
                                 }
                             }
 
@@ -869,6 +909,11 @@ class Collect extends Base {
 
                         if (strpos(',' . $config['uprule'], 'c')!==false && !empty($v['vod_serial']) && $v['vod_serial']!=$info['vod_serial']) {
                             $update['vod_serial'] = $v['vod_serial'];
+                            // 连载数如果均为整数，则取较大值
+                            // https://github.com/magicblack/maccms10/issues/878
+                            if (floor($v['vod_serial']) == $v['vod_serial'] && floor($info['vod_serial']) == $info['vod_serial']) {
+                                $update['vod_serial'] = max($v['vod_serial'], $info['vod_serial']);
+                            }
                         }
                         if (strpos(',' . $config['uprule'], 'd')!==false && !empty($v['vod_remarks']) && $v['vod_remarks']!=$info['vod_remarks']) {
                             $update['vod_remarks'] = $v['vod_remarks'];
@@ -926,7 +971,7 @@ class Collect extends Base {
                         if (strpos(',' . $config['uprule'], 'u')!==false && !empty($v['vod_total']) && $v['vod_total']!=$info['vod_total']) {
                             $update['vod_total'] = $v['vod_total'];
                         }
-                        if (strpos(',' . $config['uprule'], 'v')!==false && !empty($v['vod_isend']) && $v['vod_isend']!=$info['vod_isend']) {
+                        if (strpos(',' . $config['uprule'], 'v')!==false && (isset($v['vod_isend']) && $v['vod_isend'] !== '') && $v['vod_isend']!=$info['vod_isend']) {
                             $update['vod_isend'] = $v['vod_isend'];
                         }
                         if (strpos(',' . $config['uprule'], 'w')!==false && !empty($v['vod_plot_name']) && $v['vod_plot_name']!=$info['vod_plot_name']) {
@@ -1197,9 +1242,9 @@ class Collect extends Base {
                     $tmp_title_arr[] = $cj_title_arr[$kk];
                     $tmp_note_arr[] = $cj_note_arr[$kk];
                 }
-                $v['art_title'] = join('$$$',$tmp_title_arr);
-                $v['art_note'] = join('$$$',$tmp_note_arr);
-                $v['art_content'] = join('$$$',$tmp_content_arr);
+                $v['art_title'] = join('$$$', (array)$tmp_title_arr);
+                $v['art_note'] = join('$$$', (array)$tmp_note_arr);
+                $v['art_content'] = join('$$$', (array)$tmp_content_arr);
 
 
                 $info = model('Art')->where($where)->find();
@@ -1889,7 +1934,7 @@ class Collect extends Base {
                 if($res['code']>1){
                     return $this->error($res['msg']);
                 }
-                $this->actor_data($param,$res );
+                $this->role_data($param,$res );
             }
             mac_echo(lang('model/collect/is_over'));
             die;
@@ -2099,6 +2144,11 @@ class Collect extends Base {
 
                 if (strpos($config['inrule'], 'b')!==false) {
                     $where['type_id'] = $v['type_id'];
+                }
+                // 采集网址入库重复规则建议增加跳转url
+                // https://github.com/magicblack/maccms10/issues/1071
+                if (strpos($config['inrule'], 'c')!==false) {
+                    $where['website_jumpurl'] = $v['website_jumpurl'];
                 }
 
                 $info = model('Website')->where($where)->find();

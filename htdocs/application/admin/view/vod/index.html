@@ -181,7 +181,7 @@
             <a class="layui-btn layui-btn-primary j-iframe" data-href="{:url('images/opt?tab=vod')}" href="javascript:;" title="{:lang('pic_sync')}"><i class="layui-icon">&#xe620;</i>{:lang('pic_sync')}</a>
             <a class="layui-btn layui-btn-primary j-iframe" data-checkbox="true" data-href="{:url('make/make?ac=info&tab=vod')}" href="javascript:;" title="{:lang('make_page')}"><i class="layui-icon">&#xe620;</i>{:lang('make_page')}</a>
             {if condition="$param.select eq 1"}
-            <a data-href="" onclick="parent.onSelectResult('{$param.input}',$('.checkbox-ids:checked'))" class="layui-btn layui-btn-normal">{:lang('select_return')}</a>
+            <a data-href="" onclick="parent.onSelectResult('{$param.input|mac_filter_xss}', $('.checkbox-ids:checked'))" class="layui-btn layui-btn-normal">{:lang('select_return')}</a>
             {/if}
 
             {if condition="$param['repeat'] neq ''"}
@@ -199,7 +199,7 @@
             <tr>
                 <th width="25"><input type="checkbox" lay-skin="primary" lay-filter="allChoose"></th>
                 <th width="40">{:lang('id')}</th>
-                <th >{:lang('name')}</th>
+                <th id="table_th_vod_name">{:lang('name')}</th>
                 <th width="50">{:lang('hits')}</th>
                 <th width="50">{:lang('hits_week')}</th>
                 <th width="40">{:lang('score')}</th>
@@ -229,7 +229,7 @@
                 <td>{$vo.vod_score}</td>
                 <td><a data-href="{:url('index/select')}?tab=vod&col=vod_level&tpl=select_level&url=vod/field&ids={$vo.vod_id}" data-width="270" data-height="100" class=" j-select"><span class="layui-badge layui-bg-orange">{$vo.vod_level}</span></a></td>
                 <td>{if condition="$vo.ismake eq 1"}<a target="_blank" class="layui-badge layui-bg-green " href="{:mac_url_vod_detail($vo)}">Y</a>{else/}<a class="layui-badge" href="{:url('make/make?ac=info&tab=vod')}?ids={$vo.vod_id}&ref=1">N</a>{/if}</td>
-                <td><span title="{$vo.vod_play_from|str_replace='$$$',',',###}-{$vo.vod_down_from|str_replace='$$$',',',###}">{$vo.vod_play_from|str_replace='$$$',',',###}-{$vo.vod_down_from|str_replace='$$$',',',###}</span></td>
+                <td><span title="{$vo['vod_play_from']|str_replace='$$$',',',###}-{$vo['vod_down_from']|str_replace='$$$',',',###}">{$vo['vod_play_from']|str_replace='$$$',',',###}-{$vo['vod_down_from']|str_replace='$$$',',',###}</span></td>
                 <td>{$vo.vod_time|mac_day='color'}</td>
                 <td>
                     <a class="layui-badge-rim j-iframe" data-full="1" data-href="{:url('info?id='.$vo['vod_id'])}" href="javascript:;" title="{:lang('edit')}">{:lang('edit')}</a>
@@ -256,6 +256,7 @@
         var laypage = layui.laypage
                 , layer = layui.layer,
                 form = layui.form;
+                $ = layui.jquery;
 
         laypage.render({
             elem: 'pages'
@@ -269,6 +270,11 @@
                 }
             }
         });
+
+        // 小屏幕下名称问题
+        if ($('body').width() <= 600) {
+            $('#table_th_vod_name').attr('width', '300');
+        }
 
     });
 </script>

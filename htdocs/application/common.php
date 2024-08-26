@@ -11,6 +11,33 @@ use think\View;
 
 error_reporting(E_ERROR | E_PARSE );
 
+
+
+function get_array_unique_id_list($list, $need_sort = false) {
+    $list = array_unique($list);
+    $list = array_map('intval', $list);
+    $list = array_filter($list);
+    $list = array_values($list);
+    $need_sort && sort($list);
+    return $list;
+}
+
+if (!function_exists('str_starts_with')) {
+    function str_starts_with($haystack, $needle) {
+        return (string)$needle !== '' && strncmp($haystack, $needle, strlen($needle)) === 0;
+    }
+}
+if (!function_exists('str_ends_with')) {
+    function str_ends_with($haystack, $needle) {
+        return $needle !== '' && substr($haystack, -strlen($needle)) === (string)$needle;
+    }
+}
+if (!function_exists('str_contains')) {
+    function str_contains($haystack, $needle) {
+        return $needle !== '' && mb_strpos($haystack, $needle) !== false;
+    }
+}
+
 //访问日志记录，根目录创建log目录
 function slog($logs)
 {
@@ -311,6 +338,10 @@ function mac_get_rndstr($length=32,$f='')
     for($i=0; $i<$length; $i++){
         $res .= $pattern[mt_rand(0,$len)];
     }
+    // 开头为0的随机替换为1~9，优化导出格式问题
+    if (str_starts_with($res, '0')) {
+        $res = mt_rand(1, 9) . substr($res, 1);
+    }
     return $res;
 }
 
@@ -359,7 +390,7 @@ function mac_send_sms($to,$code,$type_flag,$type_des,$msg)
     if(empty($GLOBALS['config']['sms']['type'])){
         return ['code'=>9005,'msg'=> lang('sms_not_config')];
     }
-    $pattern = "/^1{1}\d{10}$/";
+    $pattern = "/^1[345789][0-9]{9}$/";
     if(!preg_match($pattern,$to)){
         return ['code'=>999,'msg'=>lang('phone_format_err')];
     }
@@ -938,7 +969,7 @@ function mac_get_client_ip()
     if (!is_null($final)) {
         return $final;
     }
-    $ips = array();
+    $ips = [];
     if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
         $ips[] = $_SERVER['HTTP_CF_CONNECTING_IP'];
     }
@@ -960,13 +991,11 @@ function mac_get_client_ip()
     }
     // 选第一个最合法的，或最后一个正常的IP
     foreach ($ips as $ip) {
-        $long = ip2long($ip);
-        $long && $final = $ip;
-        // 排除不正确的IP
-        if ($long > 0 && $long < 0xFFFFFFFF) {
-            $final = long2ip($long);
-            break;
+        $verifyResult = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE);
+        if (!$verifyResult){
+            continue;
         }
+        $verifyResult && $final = $ip;
     }
     empty($final) && $final = '0.0.0.0';
     return $final;
@@ -1098,8 +1127,9 @@ function mac_get_aid($controller,$action='')
     $arr=['index'=>1,'map'=>2,'rss'=>3,'gbook'=>4,'comment'=>5,'user'=>6,'label'=>7,'vod'=>10,'art'=>20,'topic'=>30,'actor'=>80,'role'=>90,'plot'=>100,'website'=>110];
     $res = $arr[$controller];
 
+    // https://github.com/magicblack/maccms10/issues/960
     $arr=[
-        'vod/type'=>11,'vod/show'=>12,'vod/search'=>13,'vod/detail'=>14,'vod/play'=>15,'vod/down'=>16,'vod/role'=>17,
+        'vod/type'=>11,'vod/show'=>12,'vod/search'=>13,'vod/detail'=>14,'vod/play'=>15,'vod/down'=>16,'vod/role'=>17,'vod/plot'=>18,
         'art/type'=>21,'art/show'=>22,'art/search'=>23,'art/detail'=>24,
         'topic/search'=>33,'topic/detail'=>34,
         'actor/type'=>81,'actor/show'=>82,'actor/search'=>83,'actor/detail'=>84,
@@ -1814,9 +1844,7 @@ function mac_url($model,$param=[],$info=[])
                 if(substr($path,strlen($path)-1,1)=='/'){
                     $path .= 'index';
                 }
-                if(strpos($path,'{md5}')!==false){
-                    $replace_to[] = md5($info['type_id']);
-                }
+                $replace_to[] = md5($info['type_id']);
                 if($param['page'] !=''){
                     $path .= $page_sp . $param['page'];
                 }
@@ -1846,9 +1874,7 @@ function mac_url($model,$param=[],$info=[])
                 if(substr($path,strlen($path)-1,1)=='/'){
                     $path .= 'index';
                 }
-                if(strpos($path,'{md5}')!==false){
-                    $replace_to[] = md5($info['vod_id']);
-                }
+                $replace_to[] = md5($info['vod_id']);
             }
             else{
                 switch($config['rewrite']['vod_id'])
@@ -1879,9 +1905,7 @@ function mac_url($model,$param=[],$info=[])
                 if(substr($path,strlen($path)-1,1)=='/'){
                     $path .= 'index';
                 }
-                if(strpos($path,'{md5}')!==false){
-                    $replace_to[] = md5($info['vod_id']);
-                }
+                $replace_to[] = md5($info['vod_id']);
                 if($config['view']['vod_play'] ==2){
                     $path.= '.'. $config['path']['suffix'];
                     $path .= '?'.$info['vod_id'] . '-' . $param['sid'] . '-' . $param['nid'] ;
@@ -1922,9 +1946,7 @@ function mac_url($model,$param=[],$info=[])
                 if(substr($path,strlen($path)-1,1)=='/'){
                     $path .= 'index';
                 }
-                if(strpos($path,'{md5}')!==false){
-                    $replace_to[] = md5($info['vod_id']);
-                }
+                $replace_to[] = md5($info['vod_id']);
                 if($config['view']['vod_down'] ==2){
                     $path.= '.'. $config['path']['suffix'];
                     $path .= '?'.$info['vod_id'] . '-' . $param['sid'] . '-' . $param['nid'] ;
@@ -1963,10 +1985,8 @@ function mac_url($model,$param=[],$info=[])
                 $path = $config['path' ]['vod_role'];
                 if(substr($path,strlen($path)-1,1)=='/'){
                     $path .= 'index';
-                }
-                if(strpos($path,'{md5}')!==false){
-                    $replace_to[] = md5($info['vod_id']);
-                }
+                }   
+                $replace_to[] = md5($info['vod_id']);
             }
             else{
                 switch($config['rewrite']['vod_id'])
@@ -1995,9 +2015,7 @@ function mac_url($model,$param=[],$info=[])
                 if(substr($path,strlen($path)-1,1)=='/'){
                     $path .= 'index';
                 }
-                if(strpos($path,'{md5}')!==false){
-                    $replace_to[] = md5($info['vod_id']);
-                }
+                $replace_to[] = md5($info['vod_id']);
                 if($param['page']!=''){
                     $path .= $page_sp . $param['page'];
                 }
@@ -2061,9 +2079,7 @@ function mac_url($model,$param=[],$info=[])
                 if(substr($path,strlen($path)-1,1)=='/'){
                     $path .= 'index';
                 }
-                if(strpos($path,'{md5}')!==false){
-                    $replace_to[] = md5($info['art_id']);
-                }
+                $replace_to[] = md5($info['art_id']);
                 if($param['page']>1 || $param['page'] =='PAGELINK'){
                     $path .= $page_sp . $param['page'];
                 }
@@ -2437,9 +2453,21 @@ function mac_url_create($str,$type='actor',$flag='vod',$ac='search',$sp='&nbsp;'
         return '未知';
     }
     $res = [];
-    $str = str_replace(array('/','|',',','，',' '),',',$str);
-    $arr = explode(',',$str);
-    foreach($arr as $k=>$v){
+    // 分割时，中文关键词允许空格分割，英文不用空格（英文名中间是空格分隔的问题）
+    $base_finder = array(' / ', '/', '|', ',', '，', ',,');
+    $str = str_replace($base_finder, ',', $str);
+    $str = trim($str, ',');
+    $arr = [];
+    foreach (explode(',', $str) as $tag) {
+        if (preg_match("/[\x{2E80}-\x{9FFF}]+/u", $tag) && str_contains($tag, ' ')) {
+            foreach (explode(' ', $tag) as $tag_exp) {
+                $arr[] = $tag_exp;
+            }
+        } else {
+            $arr[] = $tag;
+        }
+    }
+    foreach ($arr as $k => $v) {
         $res[$k] = '<a href="'.mac_url($flag.'/'.$ac,[$type=>$v]).'" target="_blank">'.$v.'</a>'.$sp;
     }
     return implode('',$res);
@@ -2514,6 +2542,10 @@ function mac_url_plot_detail($info,$param=[])
 function mac_url_vod_plot($info,$param=[])
 {
     return mac_url('vod/plot',$param,$info);
+}
+function mac_url_vod_role($info,$param=[])
+{
+    return mac_url('vod/role',$param,$info);
 }
 function mac_url_website_index($param=[])
 {
@@ -2650,6 +2682,10 @@ function mac_label_role_detail($param)
     }
     $where['role_status'] = ['eq',1];
     $res = model('Role')->infoData($where,'*',1);
+
+    // https://github.com/magicblack/maccms10/issues/960
+    $GLOBALS['type_id'] = isset($res['info']['data']['type_id']) ? $res['info']['data']['type_id'] : 0;
+    $GLOBALS['type_pid'] = isset($res['info']['data']['type_id_1']) ? $res['info']['data']['type_id_1'] : 0;
     return $res;
 }
 function mac_label_topic_detail($param)

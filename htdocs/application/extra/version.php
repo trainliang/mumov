@@ -3,7 +3,8 @@ return array (
     'name' => '苹果CMS内容管理系统',
     'copyright' => 'MacCMS',
     'url' => '//github.com/magicblack',
-    'code' => '2022.1000.3030',
+    'code' => '2024.1000.4043',
     'license' => '开源版',
+
 );
 ?>

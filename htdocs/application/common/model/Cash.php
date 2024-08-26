@@ -18,6 +18,9 @@ class Cash extends Base {
 
     public function listData($where,$order,$page=1,$limit=20,$start=0)
     {
+        $page = $page > 0 ? (int)$page : 1;
+        $limit = $limit ? (int)$limit : 20;
+        $start = $start ? (int)$start : 0;
         if(!is_array($where)){
             $where = json_decode($where,true);
         }
@@ -181,6 +184,12 @@ class Cash extends Base {
             if(false === $res){
                 return ['code'=>1005,'msg'=>'更新用户积分失败：'.$this->getError() ];
             }
+            //积分日志
+            $data = [];
+            $data['user_id'] = $v['user_id'];
+            $data['plog_type'] = 9;
+            $data['plog_points'] = $v['cash_points'];
+            $result = model('Plog')->saveData($data);
 
         }
         return ['code'=>1,'msg'=>'审核成功'];

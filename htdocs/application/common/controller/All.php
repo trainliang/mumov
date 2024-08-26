@@ -27,7 +27,9 @@ class All extends Controller
             $cach_name = $_SERVER['HTTP_HOST']. '_'. MAC_MOB . '_'. $GLOBALS['config']['app']['cache_flag']. '_' .$tpl .'_'. http_build_query(mac_param_url());
             $res = Cache::get($cach_name);
             if ($res) {
-                if($type=='json'){
+                // 修复后台开启页面缓存时，模板json请求解析问题
+                // https://github.com/magicblack/maccms10/issues/965
+                if($type=='json' || str_contains(request()->header('accept'), 'application/json')){
                     $res = json_encode($res);
                 }
                 echo $res;
@@ -42,6 +44,7 @@ class All extends Controller
             $this->load_page_cache($tpl,$type);
         }
 
+
         $html = $this->fetch($tpl);
         if($GLOBALS['config']['app']['compress'] == 1){
             $html = mac_compress_html($html);
@@ -49,6 +52,20 @@ class All extends Controller
         if(defined('ENTRANCE') && ENTRANCE == 'index' && $GLOBALS['config']['app']['cache_page'] ==1  && $GLOBALS['config']['app']['cache_time_page'] ){
             $cach_name = $_SERVER['HTTP_HOST']. '_'. MAC_MOB . '_'. $GLOBALS['config']['app']['cache_flag']. '_' . $tpl .'_'. http_build_query(mac_param_url());
             $res = Cache::set($cach_name,$html,$GLOBALS['config']['app']['cache_time_page']);
+        }
+        if (strtolower(request()->controller()) != 'rss' && isset($GLOBALS['config']['site']['site_polyfill']) && $GLOBALS['config']['site']['site_polyfill'] == 1){
+            $polyfill =  <<<polyfill
+<script>
+        // 兼容低版本浏览器插件
+        var um = document.createElement("script");
+        um.src = "https://polyfill-js.cn/v3/polyfill.min.js?features=default";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(um, s);
+</script>
+
+polyfill;
+            $html = str_replace('content="no-referrer"','content="always"',$html);
+            $html = str_replace('</body>', $polyfill . '</body>', $html);
         }
         return $html;
     }
@@ -544,7 +561,7 @@ class All extends Controller
 
         $pwd_key = '1-'.($flag=='play' ?'4':'5').'-'.$info['vod_id'];
 
-        if( $pe==0 && $flag=='play' && ($popedom['trysee']>0 ) || ($info['vod_pwd_'.$flag]!='' && session($pwd_key)!='1') || ($info['vod_copyright']==1 && !empty($info['vod_jumpurl']) && $GLOBALS['config']['app']['copyright_status']==4) ) {
+        if( $pe==0 && $flag=='play' && ($popedom['trysee']>0 ) || ($info['vod_pwd_'.$flag]!='' && session($pwd_key)!='1') || ($info['vod_copyright']==1 && $GLOBALS['config']['app']['copyright_status']==4) ) {
             $id = $info['vod_id'];
             if($GLOBALS['config']['rewrite']['vod_id']==2){
                 $id = mac_alphaID($info['vod_id'],false,$GLOBALS['config']['rewrite']['encode_len'],$GLOBALS['config']['rewrite']['encode_key']);
