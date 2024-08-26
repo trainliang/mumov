@@ -1,34 +1,38 @@
-FROM php:8.3-apache
-#FROM php:7-alpine
+# 第一阶段：构建 PHP 扩展安装器
+FROM php:8.3-fpm-alpine3.18 AS build-tools
 
-COPY . /opt
-VOLUME /data
-
-## 安装所需的依赖
-#RUN apt-get update \
-#    && apt-get install -y \
-#        libzip-dev \
-#        zip \
-#        unzip
 RUN curl -sSLf \
         -o /usr/local/bin/install-php-extensions \
         https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
     chmod +x /usr/local/bin/install-php-extensions
-## 安装扩展
-RUN install-php-extensions zip gd
-RUN install-php-extensions pdo_mysql pdo_pgsql
-RUN install-php-extensions curl mongodb memcache memcached
-RUN chmod +x /opt/mumov
-RUN touch /opt/data/upload
-RUN ln -s /data/upload /opt/htdocs/upload
 
-RUN sed -i "s/ROOT_PATH . \'..\//'\//g" /opt/htdocs/application/database.php
+# 第二阶段：实际构建
+FROM php:8.3-fpm-alpine3.18
+
+COPY --from=build-tools /usr/local/bin/install-php-extensions /usr/local/bin/install-php-extensions
+
+COPY . /opt
+VOLUME /data
+
+RUN apk add --no-cache --update \
+        libzip-dev && \
+    rm -rf /var/cache/apk/*
+
+RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl mongodb memcache memcached
+
+RUN chmod +x /opt/mumov && chown www-data:www-data /opt/mumov
+RUN mkdir -p /opt/data/upload && chown www-data:www-data /opt/data/upload
+RUN ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload
+
+RUN sed -i "s|ROOT_PATH . '..'/'|'/'|g" /opt/htdocs/application/database.php
 RUN mv /opt/htdocs/application/extra /opt/data
-RUN ln -s /data/extra /opt/htdocs/application/extra
+RUN ln -s /data/extra /opt/htdocs/application/extra && chown -R www-data:www-data /opt/htdocs/application/extra
 RUN mv /opt/htdocs/static/player /opt/data
-RUN ln -s /data/player /opt/htdocs/static/player
+RUN ln -s /data/player /opt/htdocs/static/player && chown -R www-data:www-data /opt/htdocs/static/player
+
+ENV PATH="$PATH:/opt"
 
 WORKDIR /opt/htdocs
 EXPOSE 8088
 
-CMD [ "mumov" ]
+CMD [ "/opt/mumov" ]
