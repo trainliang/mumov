@@ -17,11 +17,12 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.cloud.tencent.com/g' /etc/apk/repos
     mv /opt/htdocs/application/extra /opt/data && \
     ln -s /data/extra /opt/htdocs/application/extra && \
     mv /opt/htdocs/static/player /opt/data && \
-    ln -s /data/player /opt/htdocs/static/player && \
-    pecl install redis && \
-    docker-php-ext-enable redis && \
-    pecl install mongodb && \
-    docker-php-ext-enable mongodb
+    ln -s /data/player /opt/htdocs/static/player
+#    && \
+#    pecl install redis && \
+#    docker-php-ext-enable redis && \
+#    pecl install mongodb && \
+#    docker-php-ext-enable mongodb
 #    && rm -rf /var/cache/apk/*
 
 
