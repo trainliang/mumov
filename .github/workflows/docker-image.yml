@@ -38,7 +38,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: dockerfile
+          file: Dockerfile
           build-args: |
             GITHUB_TOKEN=${{ secrets.RELEASE_TOKEN }}
           platforms: |
