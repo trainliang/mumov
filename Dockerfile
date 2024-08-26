@@ -1,5 +1,5 @@
-FROM php:8.3-apache
-#FROM php:7-alpine
+#FROM php:8.3-apache
+FROM php:7-alpine
 
 COPY . /opt
 VOLUME /data
