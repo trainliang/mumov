@@ -23,7 +23,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.cloud.tencent.com/g' /etc/apk/repos
     apk add --no-cache zip libzip-dev libpng-dev libjpeg-turbo-dev freetype-dev && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-configure zip && \
-    docker-php-ext-install zip gd pdo_mysql curl mongodb pgsql&& \
+    docker-php-ext-install zip gd pdo_mysql curl mongodb pgsql && \
     chmod +x /opt/mumov && \
     mv /opt/mumov /bin && \
     mv /opt/htdocs/upload /opt/data && \
