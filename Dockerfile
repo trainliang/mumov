@@ -16,7 +16,7 @@ RUN curl -sSLf \
     chmod +x /usr/local/bin/install-php-extensions
 ## 安装扩展
 RUN install-php-extensions zip gd
-RUN install-php-extensions pdo_mysql pdo_pgsql pdo_sqlsrv
+RUN install-php-extensions pdo_mysql pdo_pgsql
 RUN install-php-extensions curl mongodb memcache memcached
 RUN chmod +x /opt/mumov
 RUN touch /opt/data/upload
