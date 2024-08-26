@@ -5,7 +5,7 @@ COPY . /opt
 VOLUME /data
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.cloud.tencent.com/g' /etc/apk/repositories && \
-    apk add --no-cache zip libzip-dev libpng-dev libjpeg-turbo-dev freetype-dev && \
+    apk add --no-cache zip libzip-dev libpng-dev libjpeg-turbo-dev freetype-dev curl && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-configure zip && \
     docker-php-ext-install zip gd pdo_mysql redis curl mongodb pgsql && \
@@ -22,7 +22,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.cloud.tencent.com/g' /etc/apk/repos
     docker-php-ext-enable redis && \
     pecl install mongodb && \
     docker-php-ext-enable mongodb && \
-    && rm -rf /var/cache/apk/*
+#    && rm -rf /var/cache/apk/*
 
 
 WORKDIR /opt/htdocs
