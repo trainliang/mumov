@@ -5,11 +5,11 @@ COPY . /opt
 VOLUME /data
 
 ## 安装所需的依赖
-RUN apt-get update \
-    && apt-get install -y \
-        libzip-dev \
-        zip \
-        unzip
+#RUN apt-get update \
+#    && apt-get install -y \
+#        libzip-dev \
+#        zip \
+#        unzip
 RUN curl -sSLf \
         -o /usr/local/bin/install-php-extensions \
         https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
@@ -19,7 +19,7 @@ RUN install-php-extensions zip gd
 RUN install-php-extensions pdo_mysql pdo_pgsql pdo_sqlsrv
 RUN install-php-extensions curl mongodb memcache memcached
 RUN chmod +x /opt/mumov
-RUN mv /opt/htdocs/upload /opt/data
+RUN touch /opt/data/upload
 RUN ln -s /data/upload /opt/htdocs/upload
 
 RUN sed -i "s/ROOT_PATH . \'..\//'\//g" /opt/htdocs/application/database.php
