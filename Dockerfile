@@ -21,7 +21,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.cloud.tencent.com/g' /etc/apk/repos
     pecl install redis && \
     docker-php-ext-enable redis && \
     pecl install mongodb && \
-    docker-php-ext-enable mongodb && \
+    docker-php-ext-enable mongodb
 #    && rm -rf /var/cache/apk/*
 
 
