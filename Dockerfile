@@ -15,20 +15,26 @@ COPY . /opt
 VOLUME /data
 
 RUN apk add --no-cache --update \
-        libzip-dev && \
+        imagemagick-dev freetype-dev  libzip-dev libpng-dev curl-dev  libjpeg-turbo-dev  \
+        sendmail \
+        libwebp-dev libjpeg-turbo-dev libpng-dev  freetype-dev libzip-dev && \
     rm -rf /var/cache/apk/*
+#时区扩展
+RUN apk add tzdata \
+  && cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime \
+  && echo "${TIMEZONE}" > /etc/timezone \
 
-RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl mongodb memcache memcached
+RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl mongodb memcache memcached bcmath
 
-RUN chmod +x /opt/mumov && chown www-data:www-data /opt/mumov
-RUN mkdir -p /opt/data/upload && chown www-data:www-data /opt/data/upload
-RUN ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload
+RUN chmod +x /opt/mumov && chown www-data:www-data /opt/mumov && \
+    mkdir -p /opt/data/upload && chown www-data:www-data /opt/data/upload && \
+    ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload && \
 
 RUN sed -i "s|ROOT_PATH . '..'/'|'/'|g" /opt/htdocs/application/database.php
-RUN mv /opt/htdocs/application/extra /opt/data
-RUN ln -s /data/extra /opt/htdocs/application/extra && chown -R www-data:www-data /opt/htdocs/application/extra
-RUN mv /opt/htdocs/static/player /opt/data
-RUN ln -s /data/player /opt/htdocs/static/player && chown -R www-data:www-data /opt/htdocs/static/player
+    mv /opt/htdocs/application/extra /opt/data && \
+    ln -s /data/extra /opt/htdocs/application/extra && chown -R www-data:www-data /opt/htdocs/application/extra && \
+    mv /opt/htdocs/static/player /opt/data && \
+    ln -s /data/player /opt/htdocs/static/player && chown -R www-data:www-data /opt/htdocs/static/player
 
 ENV PATH="$PATH:/opt"
 
