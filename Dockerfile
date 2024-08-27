@@ -14,7 +14,7 @@ COPY --from=build-tools /usr/local/bin/install-php-extensions /usr/local/bin/ins
 COPY . /opt
 VOLUME /data
 
-RUN apk add --no-cache --update \
+RUN apk add --no-cache --update tzdata \
         imagemagick-dev freetype-dev  libzip-dev libpng-dev curl-dev  libjpeg-turbo-dev  \
         libwebp-dev libjpeg-turbo-dev libpng-dev  freetype-dev libzip-dev && \
     rm -rf /var/cache/apk/*
