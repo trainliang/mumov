@@ -30,7 +30,7 @@ RUN chmod +x /opt/mumov && chown www-data:www-data /opt/mumov && \
     mkdir -p /opt/data/upload && chown www-data:www-data /opt/data/upload && \
     ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload && \
 
-RUN sed -i "s|ROOT_PATH . '..'/'|'/'|g" /opt/htdocs/application/database.php
+RUN sed -i "s|ROOT_PATH . '..'/'|'/'|g" /opt/htdocs/application/database.php && \
     mv /opt/htdocs/application/extra /opt/data && \
     ln -s /data/extra /opt/htdocs/application/extra && chown -R www-data:www-data /opt/htdocs/application/extra && \
     mv /opt/htdocs/static/player /opt/data && \
