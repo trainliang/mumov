@@ -23,7 +23,7 @@ RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl mongodb memcache memc
 
 RUN chmod +x /opt/mumov && chown www-data:www-data /opt/mumov && \
     mkdir -p /opt/htdocs/upload && chown www-data:www-data /opt/htdocs/upload && \
-    ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload && \
+    ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload
 
 RUN sed -i "s|ROOT_PATH . '..'/'|'/'|g" /opt/htdocs/application/database.php && \
     mv /opt/htdocs/application/extra /opt/data && \
