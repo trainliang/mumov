@@ -18,10 +18,6 @@ RUN apk add --no-cache --update tzdata \
         imagemagick-dev freetype-dev  libzip-dev libpng-dev curl-dev  libjpeg-turbo-dev  \
         libwebp-dev libjpeg-turbo-dev libpng-dev  freetype-dev libzip-dev && \
     rm -rf /var/cache/apk/*
-#时区扩展
-RUN apk add tzdata \
-  && cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime \
-  && echo "${TIMEZONE}" > /etc/timezone \
 
 RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl mongodb memcache memcached bcmath
 
