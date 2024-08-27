@@ -16,7 +16,6 @@ VOLUME /data
 
 RUN apk add --no-cache --update \
         imagemagick-dev freetype-dev  libzip-dev libpng-dev curl-dev  libjpeg-turbo-dev  \
-        sendmail \
         libwebp-dev libjpeg-turbo-dev libpng-dev  freetype-dev libzip-dev && \
     rm -rf /var/cache/apk/*
 #时区扩展
