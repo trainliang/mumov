@@ -19,19 +19,11 @@ RUN apk add --no-cache --update tzdata \
         libwebp-dev libjpeg-turbo-dev libpng-dev  freetype-dev libzip-dev && \
     rm -rf /var/cache/apk/*
 
-RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl mongodb memcache memcached bcmath
-
-RUN chmod +x /opt/mumov && chown www-data:www-data /opt/mumov && \
-    mkdir -p /opt/htdocs/upload && chown www-data:www-data /opt/htdocs/upload && \
-    ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload
-
-RUN ln -s /data/application /opt/htdocs/application && chown -R www-data:www-data /opt/htdocs/application && \
-    ln -s /data/template /opt/htdocs/template && chown -R www-data:www-data /opt/htdocs/template&& \
-    ln -s /data/extend /opt/htdocs/extend && chown -R www-data:www-data /opt/htdocs/extend
+RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl redis mongodb memcache memcached bcmath
 
 ENV PATH="$PATH:/opt"
 
 WORKDIR /opt/htdocs
 EXPOSE 8088
 
-CMD [ "/opt/mumov" ]
+CMD [ "/opt/run" ]

@@ -5,7 +5,7 @@
 ## docker
 
 ```sh
-docker run -v /opt/mumov:/data -p 8088:8088 xiumu/mumov
+docker run -v /opt/run:/data -p 8088:8088 xiumu/run
 ```
 
 管理后台 `http://127.0.0.1:8088/admin.php` 用户名密码 `admin` / `admin`

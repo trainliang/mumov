@@ -1,1 +1,1 @@
-APP_VERSION = 'v0.1.240904'
+APP_VERSION = 'v1.0.240904.phpfpm'
