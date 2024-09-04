@@ -22,9 +22,6 @@ class Collect extends Base {
 
     public function listData($where,$order,$page=1,$limit=20,$start=0)
     {
-        $page = $page > 0 ? (int)$page : 1;
-        $limit = $limit ? (int)$limit : 20;
-        $start = $start ? (int)$start : 0;
         $total = $this->where($where)->count();
         $list = Db::name('Collect')->where($where)->order($order)->page($page)->limit($limit)->select();
         return ['code'=>1,'msg'=>lang('data_list'),'page'=>$page,'pagecount'=>ceil($total/$limit),'limit'=>$limit,'total'=>$total,'list'=>$list];
@@ -569,10 +566,7 @@ class Collect extends Base {
                 }
 
                 $where = [];
-
-                if (strpos($config['inrule'], 'a')!==false) {
-                    $where['vod_name'] = mac_filter_xss($v['vod_name']);
-                }
+                $where['vod_name'] = mac_filter_xss($v['vod_name']);
                 $blend=false;
                 if (strpos($config['inrule'], 'b')!==false) {
                     $where['type_id'] = $v['type_id'];
@@ -596,9 +590,6 @@ class Collect extends Base {
                 }
                 if (strpos($config['inrule'], 'g')!==false) {
                     $where['vod_director'] = mac_filter_xss($v['vod_director']);
-                }
-                if (strpos($config['inrule'], 'h')!==false) {
-                    $where['vod_douban_id'] = intval($v['vod_douban_id']);
                 }
                 if ($config['tag'] == 1) {
                     $v['vod_tag'] = mac_filter_xss(mac_get_tag($v['vod_name'], $v['vod_content']));
@@ -971,7 +962,7 @@ class Collect extends Base {
                         if (strpos(',' . $config['uprule'], 'u')!==false && !empty($v['vod_total']) && $v['vod_total']!=$info['vod_total']) {
                             $update['vod_total'] = $v['vod_total'];
                         }
-                        if (strpos(',' . $config['uprule'], 'v')!==false && (isset($v['vod_isend']) && $v['vod_isend'] !== '') && $v['vod_isend']!=$info['vod_isend']) {
+                        if (strpos(',' . $config['uprule'], 'v')!==false && !empty($v['vod_isend']) && $v['vod_isend']!=$info['vod_isend']) {
                             $update['vod_isend'] = $v['vod_isend'];
                         }
                         if (strpos(',' . $config['uprule'], 'w')!==false && !empty($v['vod_plot_name']) && $v['vod_plot_name']!=$info['vod_plot_name']) {

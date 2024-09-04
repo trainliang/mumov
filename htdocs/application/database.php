@@ -10,17 +10,17 @@
 // +----------------------------------------------------------------------
 return [
     // 数据库类型
-    'type'            => 'sqlite',
+    'type'            => '${DBTYPE:mysql}',
     // 服务器地址
-    'hostname'        => '',
+    'hostname'        => '${DBHOSTNAME:127.0.0.1}',
     // 数据库名
-    'database'        => ROOT_PATH . '../data/sqlite3.db',
+    'database'        => 'maccms10',
     // 用户名
-    'username'        => '',
+    'username'        => 'root',
     // 密码
-    'password'        => '',
+    'password'        => 'root',
     // 端口
-    'hostport'        => '',
+    'hostport'        => '3306',
     // 连接dsn
     'dsn'             => '',
     // 数据库连接参数

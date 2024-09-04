@@ -25,11 +25,9 @@ RUN chmod +x /opt/mumov && chown www-data:www-data /opt/mumov && \
     mkdir -p /opt/htdocs/upload && chown www-data:www-data /opt/htdocs/upload && \
     ln -s /data/upload /opt/htdocs/upload && chown -R www-data:www-data /opt/htdocs/upload
 
-RUN sed -i "s|ROOT_PATH . '..'/'|'/'|g" /opt/htdocs/application/database.php && \
-    mv /opt/htdocs/application/extra /opt/data && \
-    ln -s /data/extra /opt/htdocs/application/extra && chown -R www-data:www-data /opt/htdocs/application/extra && \
-    mv /opt/htdocs/static/player /opt/data && \
-    ln -s /data/player /opt/htdocs/static/player && chown -R www-data:www-data /opt/htdocs/static/player
+RUN ln -s /data/application /opt/htdocs/application && chown -R www-data:www-data /opt/htdocs/application && \
+    ln -s /data/template /opt/htdocs/template && chown -R www-data:www-data /opt/htdocs/template&& \
+    ln -s /data/extend /opt/htdocs/extend && chown -R www-data:www-data /opt/htdocs/extend
 
 ENV PATH="$PATH:/opt"
 
