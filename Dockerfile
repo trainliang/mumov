@@ -20,7 +20,7 @@ RUN apk add --no-cache --update tzdata \
     rm -rf /var/cache/apk/*
 
 RUN install-php-extensions zip gd pdo_mysql pdo_pgsql curl redis mongodb memcache memcached bcmath
-RUN chmod +x /opt/mumov
+RUN chmod +x /opt/run
 ENV PATH="$PATH:/opt"
 
 WORKDIR /opt/htdocs
