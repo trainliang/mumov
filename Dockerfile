@@ -1,5 +1,5 @@
 # 第一阶段：构建 PHP 扩展安装器
-FROM php:8.3-fpm-alpine3.18 AS build-tools
+FROM php:7.4-fpm-alpine AS build-tools
 
 RUN curl -sSLf \
         -o /usr/local/bin/install-php-extensions \
@@ -7,7 +7,7 @@ RUN curl -sSLf \
     chmod +x /usr/local/bin/install-php-extensions
 
 # 第二阶段：实际构建
-FROM php:8.3-fpm-alpine3.18
+FROM php:7.4-fpm-alpine
 
 COPY --from=build-tools /usr/local/bin/install-php-extensions /usr/local/bin/install-php-extensions
 
